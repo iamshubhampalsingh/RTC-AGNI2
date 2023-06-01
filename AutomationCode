@@ -1,0 +1,1318 @@
+#This code is written for AGNI 2 RTC device
+#Developed by shubham.singh@lavainternational.in
+
+#############################################Alarm##########################################################################
+import uiautomator2 as ui2
+import time
+import subprocess
+from datetime import datetime, timedelta
+import pandas as pd
+import os
+
+now = datetime.now()
+current_time = now.strftime("%H:%M:%S")
+print("Current Time =", current_time)
+
+# Connecting device to UIAutomator
+d = ui2.connect('172.16.49.61:5555')
+
+# Run the adb command to get the battery percentage
+result = subprocess.run(['adb', 'shell', 'dumpsys', 'battery'], capture_output=True, text=True)
+
+# Parse the output to extract the battery percentage
+battery_info = result.stdout.splitlines()
+battery_percentage = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage = line.split(':')[1].strip()
+
+# Print the battery percentage
+print("Battery Percentage at start of alarm:", battery_percentage)
+
+# Get the current app package and activity
+current_app = d.current_app()
+# Get the current time
+current_time = datetime.now()
+
+# Calculate the alarm time (5 minutes from the current time)
+alarm_time = current_time + timedelta(minutes=5)
+print(alarm_time)
+
+# Extract the hour and minute from the alarm time
+hour = str(alarm_time.hour)
+minute = str(alarm_time.minute)
+
+# Open the Clock app
+d.press("home")
+d(scrollable=True).scroll.toEnd()
+time.sleep(2)
+d(resourceId="com.android.launcher3:id/icon", text="Clock").click()
+# Set the alarm time
+d(resourceId="com.google.android.deskclock:id/fab").click()
+time.sleep(2)
+
+# Locate the text box for entering the hour value and click on it
+d.xpath('//*[@resource-id="com.google.android.deskclock:id/material_hour_text_input"]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]')
+text_box1 = d.xpath('//*[@resource-id="com.google.android.deskclock:id/material_hour_text_input"]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]')
+if text_box1.exists:
+    d.click(0.437, 0.911)
+    d.send_keys(hour)
+    
+time.sleep(2)
+d.xpath('//*[@resource-id="com.google.android.deskclock:id/material_minute_text_input"]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]').click()
+text_box2 = d.xpath('//*[@resource-id="com.google.android.deskclock:id/material_minute_text_input"]/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]')
+if text_box2.exists:
+    d.click(0.437, 0.911)
+    d.send_keys(minute)
+
+d(text="OK").click()
+time.sleep(2)
+d(resourceId="com.android.systemui:id/center_group").click()
+time.sleep(300)
+num_runs = 5  # Stop the alarm after 5 seconds (adjust as needed)
+for run in range(num_runs):
+    time.sleep(1)
+    if d(text="Alarm").exists():
+        d(text="STOP").click()
+
+print("Alarm stopped")
+
+# Get the battery percentage at the end
+result = subprocess.run(['adb', '-s', '172.16.49.61:5555', 'shell', 'dumpsys', 'battery'],
+                        capture_output=True, text=True)
+battery_info = result.stdout.splitlines()
+battery_percentage_end = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage_end = line.split(':')[1].strip()
+
+# Print the battery percentage at the end
+print("Battery Percentage at end of Alarm:", battery_percentage_end)
+
+#########################################Standby#############################################################################
+
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+import os
+from datetime import datetime, timedelta
+# Device serial number of the receiver device
+receiver_device_serial = "172.16.49.61:5555"
+
+# Get the current time
+start_time = datetime.now()
+
+# ADB command to retrieve battery information
+adb_command = ['adb', '-s', receiver_device_serial, 'shell', 'dumpsys', 'battery']
+
+# Execute the ADB command and capture the output
+result = subprocess.run(adb_command, capture_output=True, text=True)
+
+# Parse the output to extract the battery percentage
+battery_info = result.stdout.splitlines()
+battery_percentage = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage = line.split(':')[1].strip()
+
+print("Battery Percentage of the receiver device:", battery_percentage)
+
+# Get the current time
+current_time = datetime.now()
+
+# Create a Device object for the sender device
+sender_device = ui2.Device('cf611ff9')
+
+# Get the current app package and activity
+current_app = d.current_app()
+
+# Create a Device object for the receiver device
+receiver_device = ui2.Device(receiver_device_serial)
+
+turn_off_command = f"adb -s {receiver_device_serial} shell input keyevent 26"
+turn_on_command = f"adb -s {receiver_device_serial} shell input keyevent 224"
+time.sleep(2)
+subprocess.run(turn_off_command, shell=True, check=True)
+
+# Compose the message
+sender_device(text="Messages").click()
+time.sleep(2)
+sender_device(text="Start chat").click()
+time.sleep(2)
+sender_device(text="AAAAA").click()
+sender_device(text="Mobile+91 84486 97488").click()
+
+num_runs = 10
+for run in range(num_runs):
+    sender_device(resourceId="com.google.android.apps.messaging:id/compose_message_text").set_text("hello")
+    time.sleep(2)
+    sender_device(resourceId="com.google.android.apps.messaging:id/send_message_button_container").click()
+    time.sleep(60)
+
+subprocess.run(turn_on_command, shell=True, check=True)
+time.sleep(2)
+receiver_device.swipe(500, 1500, 500, 500)  # Adjust the swipe coordinates as needed
+
+# Get the battery percentage at the end
+result = subprocess.run(['adb', '-s', receiver_device_serial, 'shell', 'dumpsys', 'battery'],
+                        capture_output=True, text=True)
+battery_info = result.stdout.splitlines()
+battery_percentage_end = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage_end = line.split(':')[1].strip()
+
+# Print the battery percentage at the end
+print("Battery Percentage at end of standby:", battery_percentage_end)
+
+##############################################Youtube for 10 minutes ########################################################
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+import os
+from datetime import datetime, timedelta
+
+# Device serial number of the receiver device
+receiver_device_serial = "192.168.228.94:5555"
+
+# Get the current time
+current_time = datetime.now()
+
+# ADB command to retrieve battery information
+adb_command = ['adb', '-s', receiver_device_serial, 'shell', 'dumpsys', 'battery']
+
+# Execute the ADB command and capture the output
+result = subprocess.run(adb_command, capture_output=True, text=True)
+
+# Parse the output to extract the battery percentage
+battery_info = result.stdout.splitlines()
+battery_percentage_start = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage_start = line.split(':')[1].strip()
+
+print("Battery Percentage at the start of YouTube:", battery_percentage_start)
+
+# Connecting device to UIAutomator
+d = ui2.connect(receiver_device_serial)
+
+num_runs = 2
+for run in range(num_runs):
+    d(scrollable=True).scroll.toEnd(20)
+    time.sleep(2)
+    d(scrollable=True).scroll.toEnd(10)
+    time.sleep(2)
+    d(resourceId="com.android.launcher3:id/icon", text="YouTube").click()
+    time.sleep(4)
+    d(resourceId="com.google.android.youtube:id/menu_item_1").click()
+    time.sleep(2)
+    d(text="Search YouTube").set_text("LAVA V5 - First impressions")
+    time.sleep(2)
+    d.press("enter")
+    time.sleep(5)
+    d(scrollable=True).scroll.toEnd(0)
+    time.sleep(10)
+    d.click(500, 300)
+    time.sleep(10)
+    d(resourceId="com.google.android.youtube:id/watch_player").click()
+    time.sleep(1)
+    d(resourceId="com.google.android.youtube:id/fullscreen_button").click()
+    time.sleep(180)
+    d.press("home")
+    time.sleep(1)
+    d(resourceId="com.android.systemui:id/recent_apps").click()
+    time.sleep(2)
+    d(text="Clear all").click()
+    time.sleep(2)
+
+d.press('home')
+
+result = subprocess.run(adb_command, capture_output=True, text=True)
+
+# Parse the output to extract the battery percentage
+battery_info = result.stdout.splitlines()
+battery_percentage_end = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage_end = line.split(':')[1].strip()
+
+print("Battery Percentage at the end of YouTube:", battery_percentage_end)
+
+#######################################Google call ########################################################################
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+import os
+from datetime import datetime
+
+# Connect to the device
+d = ui2.connect('192.168.228.94:5555')
+
+# Get the current time
+start_time = datetime.now()
+
+# ADB command to retrieve battery information
+battery_command = ['adb', 'shell', 'dumpsys', 'battery']
+
+# Execute the ADB command to get battery information at the start
+battery_info_start = subprocess.run(battery_command, capture_output=True, text=True)
+battery_percentage_start = None
+for line in battery_info_start.stdout.splitlines():
+    if 'level' in line:
+        battery_percentage_start = line.split(':')[1].strip()
+
+print("Battery Percentage at the start:", battery_percentage_start)
+
+d(text="Phone").click()
+time.sleep(2)
+num_runs = 10
+for run in range(num_runs):
+ d(resourceId='com.google.android.dialer:id/dialpad_fab').click()
+ d(text='8').click()
+ d(text='5').click()
+ d(text='2').click()
+ d(text='7').click()
+ d(text='7').click()
+ d(text='4').click()
+ d(text='6').click()
+ d(text='8').click()
+ d(text='9').click()
+ d(text='7').click()
+ d(resourceId="com.android.dialer:id/dialpad_floating_action_button").click()
+ time.sleep(60)
+ d(resourceId="com.android.dialer:id/incall_end_call").click()
+time.sleep(2)
+d(resourceId="com.android.systemui:id/recent_apps").click()
+time.sleep(2)
+d(resourceId="com.android.launcher3:id/clear_all_button").click()
+d.press("home")
+# Get the current time after the call
+end_time = datetime.now()
+
+result = subprocess.run(adb_command, capture_output=True, text=True)
+
+# Parse the output to extract the battery percentage
+battery_info = result.stdout.splitlines()
+battery_percentage_end = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage_end = line.split(':')[1].strip()
+
+print("Battery Percentage at the end of Google call:", battery_percentage_end)
+
+########################################Messages###########################################################################
+
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+from datetime import datetime
+
+# Connect to the device
+d = ui2.connect('192.168.228.94:5555')
+
+# Get the current time
+start_time = datetime.now()
+
+# ADB command to retrieve battery information
+battery_command = ['adb', 'shell', 'dumpsys', 'battery']
+
+# Execute the ADB command to get battery information at the start
+battery_info_start = subprocess.run(battery_command, capture_output=True, text=True)
+battery_percentage_start = None
+for line in battery_info_start.stdout.splitlines():
+    if 'level' in line:
+        battery_percentage_start = line.split(':')[1].strip()
+
+print("Battery Percentage at the start:", battery_percentage_start)
+
+d(text="Messages").click()
+time.sleep(2)
+d(resourceId="com.google.android.apps.messaging:id/start_chat_fab").click()
+time.sleep(2)
+d(text="Abc").click()
+time.sleep(2)
+d(text="Mobile85277 46897").click()
+
+time.sleep(2)
+
+num_runs = 10
+for run in range(num_runs):
+    d(resourceId="com.google.android.apps.messaging:id/compose_message_text").set_text("hello")
+    time.sleep(2)
+    d(resourceId="com.google.android.apps.messaging:id/send_message_button_container").click()
+    time.sleep(60)
+
+d(resourceId="com.android.systemui:id/center_group").click()
+time.sleep(2)
+d(resourceId="com.android.systemui:id/recent_apps").click()
+time.sleep(2)
+d(text="Clear all").click()
+time.sleep(2)
+d.press('home')
+
+# Get the current time after the messaging
+end_time = datetime.now()
+
+# Execute the ADB command to get battery information at the end
+battery_info_end = subprocess.run(battery_command, capture_output=True, text=True)
+battery_percentage_end = None
+for line in battery_info_end.stdout.splitlines():
+    if 'level' in line:
+        battery_percentage_end = line.split(':')[1].strip()
+
+print("Battery Percentage at the end of messaging:", battery_percentage_end)
+
+##########################################Google Browse######################################################################
+
+import uiautomator2 as ui2
+from uiautomator2 import Device
+import time
+import subprocess
+import pandas as pd
+from datetime import datetime
+
+# Connect to the device
+d = ui2.connect('192.168.228.94:5555')
+
+# Get the current time
+start_time = datetime.now()
+
+# ADB command to retrieve battery information
+battery_command = ['adb', 'shell', 'dumpsys', 'battery']
+
+# Execute the ADB command to get battery information at the start
+battery_info_start = subprocess.run(battery_command, capture_output=True, text=True)
+battery_percentage_start = None
+for line in battery_info_start.stdout.splitlines():
+    if 'level' in line:
+        battery_percentage_start = line.split(':')[1].strip()
+
+print("Battery Percentage at the start:", battery_percentage_start)
+
+
+# Wait for the app to load
+time.sleep(2)
+
+d(text="Chrome").click()
+
+num_runs = 50
+for run in range(num_runs):
+    time.sleep(2)
+    d(scrollable=True).scroll.toEnd(steps=10)
+    time.sleep(2)
+    d(scrollable=True).scroll.toBeginning(steps=10)
+    
+print("Scrolled through Google News for 10 minutes")
+
+d(resourceId="com.android.systemui:id/center_group").click()
+time.sleep(2)
+d(resourceId="com.android.systemui:id/recent_apps").click()
+time.sleep(2)
+d(text="Clear all").click()
+time.sleep(2)
+d.press('home')
+
+# Get the current time after scrolling
+end_time = datetime.now()
+
+# Execute the ADB command to get battery information at the end
+battery_info_end = subprocess.run(battery_command, capture_output=True, text=True)
+battery_percentage_end = None
+for line in battery_info_end.stdout.splitlines():
+    if 'level' in line:
+        battery_percentage_end = line.split(':')[1].strip()
+
+print("Battery Percentage at the end of scrolling:", battery_percentage_end)
+
+##########################################Standby########################################################################
+
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+import os
+from datetime import datetime, timedelta
+# Device serial number of the receiver device
+receiver_device_serial = "172.16.49.61:5555"
+
+# Get the current time
+start_time = datetime.now()
+
+# ADB command to retrieve battery information
+adb_command = ['adb', '-s', receiver_device_serial, 'shell', 'dumpsys', 'battery']
+
+# Execute the ADB command and capture the output
+result = subprocess.run(adb_command, capture_output=True, text=True)
+
+# Parse the output to extract the battery percentage
+battery_info = result.stdout.splitlines()
+battery_percentage = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage = line.split(':')[1].strip()
+
+print("Battery Percentage of the receiver device:", battery_percentage)
+
+# Get the current time
+current_time = datetime.now()
+
+# Create a Device object for the sender device
+sender_device = ui2.Device('cf611ff9')
+
+# Get the current app package and activity
+current_app = d.current_app()
+
+# Create a Device object for the receiver device
+receiver_device = ui2.Device(receiver_device_serial)
+
+turn_off_command = f"adb -s {receiver_device_serial} shell input keyevent 26"
+turn_on_command = f"adb -s {receiver_device_serial} shell input keyevent 224"
+time.sleep(2)
+subprocess.run(turn_off_command, shell=True, check=True)
+
+# Compose the message
+sender_device(text="Messages").click()
+time.sleep(2)
+sender_device(text="Start chat").click()
+time.sleep(2)
+sender_device(text="AAAAA").click()
+sender_device(text="Mobile+91 84486 97488").click()
+
+num_runs = 10
+for run in range(num_runs):
+    sender_device(resourceId="com.google.android.apps.messaging:id/compose_message_text").set_text("hello")
+    time.sleep(2)
+    sender_device(resourceId="com.google.android.apps.messaging:id/send_message_button_container").click()
+    time.sleep(60)
+
+subprocess.run(turn_on_command, shell=True, check=True)
+time.sleep(2)
+receiver_device.swipe(500, 1500, 500, 500)  # Adjust the swipe coordinates as needed
+
+# Get the battery percentage at the end
+result = subprocess.run(['adb', '-s', receiver_device_serial, 'shell', 'dumpsys', 'battery'],
+                        capture_output=True, text=True)
+battery_info = result.stdout.splitlines()
+battery_percentage_end = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage_end = line.split(':')[1].strip()
+
+# Print the battery percentage at the end
+print("Battery Percentage at end of standby:", battery_percentage_end)
+
+###################################Game(temple run) #########################################################################
+
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+from datetime import datetime
+
+# Connect to the device
+d = ui2.connect('192.168.228.94:5555')
+
+# Get the current time
+start_time = datetime.now()
+
+# ADB command to retrieve battery information
+battery_command = ['adb', 'shell', 'dumpsys', 'battery']
+
+# Execute the ADB command to get battery information at the start
+battery_info_start = subprocess.run(battery_command, capture_output=True, text=True)
+battery_percentage_start = None
+for line in battery_info_start.stdout.splitlines():
+    if 'level' in line:
+        battery_percentage_start = line.split(':')[1].strip()
+
+print("Battery Percentage at the start:", battery_percentage_start)
+
+# Scroll to the end of the screen
+d(scrollable=True).scroll.toEnd(steps=10)
+time.sleep(5)
+d(scrollable=True).scroll.toEnd(steps=10)
+
+# Launch Temple Run 2
+d(text="TempleRun2").click()
+time.sleep(40)
+print("Click on the screen")
+
+# Define the coordinates where you want to click
+x = 0.517
+y = 0.929
+d.click(x, y)
+print("Clicked on the screen")
+
+num_runs = 10
+for run in range(num_runs):
+    time.sleep(60)
+
+# Check if any game-related UI element is present
+game_element = d(className="android.widget.FrameLayout", packageName="com.imangi.templerun2")
+if game_element.exists():
+    print("A game is playing.")
+else:
+    print("No game is playing.")
+
+# Return to the home screen
+d.press("home")
+time.sleep(2)
+d(resourceId="com.android.systemui:id/recent_apps").click()
+time.sleep(2)
+d(text="Clear all").click()
+time.sleep(2)
+d.press('home')
+
+# Get the battery percentage at the end
+result = subprocess.run(['adb', 'shell', 'dumpsys', 'battery'], capture_output=True, text=True)
+battery_info = result.stdout.splitlines()
+battery_percentage_end = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage_end = line.split(':')[1].strip()
+
+print("Battery Percentage at the end of Temple Run:", battery_percentage_end)
+
+################################################Whatsapp ##################################################################
+
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+from datetime import datetime
+
+# Connect to the device
+d = ui2.connect('192.168.228.94:5555')
+
+# Get the current time
+start_time = datetime.now()
+
+# ADB command to retrieve battery information
+battery_command = ['adb', 'shell', 'dumpsys', 'battery']
+
+# Execute the ADB command to get battery information at the start
+battery_info_start = subprocess.run(battery_command, capture_output=True, text=True)
+battery_percentage_start = None
+for line in battery_info_start.stdout.splitlines():
+    if 'level' in line:
+        battery_percentage_start = line.split(':')[1].strip()
+
+print("Battery Percentage at the start:", battery_percentage_start)
+
+d.press('home')
+time.sleep(2)
+ 
+d(scrollable=True).scroll.toEnd()
+time.sleep(2)
+d(scrollable=True).scroll.toEnd()
+d(text="WhatsApp").click()
+time.sleep(2)
+d(resourceId="com.whatsapp:id/fab").click()
+time.sleep(2)
+d(resourceId="com.whatsapp:id/contactpicker_row_name", text="+91 84486 97488 (You)").click()
+time.sleep(2)
+num_run = 60
+for i in range(num_run):
+ time.sleep(10)   
+ # Enter text in the chat input field
+ chat_input = d(resourceId="com.whatsapp:id/entry")
+ chat_input.set_text("hello")
+
+ # Tap on the send button
+ send_button = d(resourceId="com.whatsapp:id/send")
+ send_button.click()
+d.press("home")
+d(resourceId="com.android.systemui:id/recent_apps").click()
+time.sleep(2)
+d(text="Clear all").click()  
+time.sleep(2)
+d.press('home')
+
+# Get the battery percentage at the end
+result = subprocess.run(['adb', 'shell', 'dumpsys', 'battery'], capture_output=True, text=True)
+battery_info = result.stdout.splitlines()
+battery_percentage_end = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage_end = line.split(':')[1].strip()
+
+print("Battery Percentage at the end:", battery_percentage_end)
+
+##############################################facebook ################################################################
+
+import uiautomator2 as ui2
+import time
+import subprocess
+d = ui2.connect('192.168.228.94:5555')
+d.press('home')
+d(scrollable=True).scroll.toEnd()
+time.sleep(2)
+d(resourceId="com.android.launcher3:id/icon", text="Facebook").click()
+d(description="Make a post on Facebook").click()
+# Input the desired text into the status update
+d.xpath('//android.widget.ScrollView/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]').set_text("Lava mobile - Rethink what a phone can do")
+# Post the status update
+d(description="POST").click()
+time.sleep(2)
+num_runs = 20
+for run in range(num_runs):
+ time.sleep(30)
+ # Get the dimensions of the device screen
+ screen_width, screen_height = d.window_size()
+
+ # Get the dimensions of the device screen
+ screen_width, screen_height = d.window_size()
+
+ # Define the start and end coordinates for the swipe down gesture
+ start_x = screen_width // 2
+ start_y = screen_height // 4
+ end_x = start_x
+ end_y = start_y * 3
+
+ # Perform the swipe down gesture
+ d.swipe(start_x, start_y, end_x, end_y, duration=0.5)
+    
+d(resourceId="com.android.systemui:id/center_group").click()
+time.sleep(2)
+d(resourceId="com.android.systemui:id/recent_apps").click()
+time.sleep(2)
+d(text="Clear all").click()
+
+########################################Game(Subwaysurfer) ####################################################################
+
+d.press('home')
+d(scrollable=True).scroll.toEnd()
+time.sleep(2)
+d(scrollable=True).scroll.toEnd()
+d(text="Subway Surf").click()
+time.sleep(30)
+x=0.517
+y=0.929
+d.click(x,y)
+print("tap to play clicked")
+time.sleep(570)
+d.press("home")
+time.sleep(2)
+d(resourceId="com.android.systemui:id/recent_apps").click()
+time.sleep(2)
+d(resourceId="com.android.launcher3:id/clear_all_button").click()
+result = subprocess.run(['adb', 'shell', 'dumpsys', 'battery'], capture_output=True, text=True)
+
+# Parse the output to extract the battery percentage
+battery_info = result.stdout.splitlines()
+battery_percentage = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage = line.split(':')[1].strip()
+
+# Print the battery percentage
+print("Battery Percentage at start of subwaysurfer:", battery_percentage)
+
+#########################################Youtube##############################################################################
+
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+import os
+from datetime import datetime, timedelta
+
+# Device serial number of the receiver device
+receiver_device_serial = "192.168.228.94:5555"
+
+# Get the current time
+current_time = datetime.now()
+
+# ADB command to retrieve battery information
+adb_command = ['adb', '-s', receiver_device_serial, 'shell', 'dumpsys', 'battery']
+
+# Execute the ADB command and capture the output
+result = subprocess.run(adb_command, capture_output=True, text=True)
+
+# Parse the output to extract the battery percentage
+battery_info = result.stdout.splitlines()
+battery_percentage_start = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage_start = line.split(':')[1].strip()
+
+print("Battery Percentage at the start of YouTube:", battery_percentage_start)
+
+# Connecting device to UIAutomator
+d = ui2.connect(receiver_device_serial)
+
+num_runs = 2
+for run in range(num_runs):
+    d(scrollable=True).scroll.toEnd(20)
+    time.sleep(2)
+    d(scrollable=True).scroll.toEnd(10)
+    time.sleep(2)
+    d(resourceId="com.android.launcher3:id/icon", text="YouTube").click()
+    time.sleep(4)
+    d(resourceId="com.google.android.youtube:id/menu_item_1").click()
+    time.sleep(2)
+    d(text="Search YouTube").set_text("LAVA V5 - First impressions")
+    time.sleep(2)
+    d.press("enter")
+    time.sleep(5)
+    d(scrollable=True).scroll.toEnd(0)
+    time.sleep(10)
+    d.click(500, 300)
+    time.sleep(10)
+    d(resourceId="com.google.android.youtube:id/watch_player").click()
+    time.sleep(1)
+    d(resourceId="com.google.android.youtube:id/fullscreen_button").click()
+    time.sleep(180)
+    d.press("home")
+    time.sleep(1)
+    d(resourceId="com.android.systemui:id/recent_apps").click()
+    time.sleep(2)
+    d(text="Clear all").click()
+    time.sleep(2)
+
+d.press('home')
+
+result = subprocess.run(adb_command, capture_output=True, text=True)
+
+# Parse the output to extract the battery percentage
+battery_info = result.stdout.splitlines()
+battery_percentage_end = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage_end = line.split(':')[1].strip()
+
+print("Battery Percentage at the end of YouTube:", battery_percentage_end)
+
+#################################Standby############################################################################################
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+import os
+from datetime import datetime, timedelta
+# Device serial number of the receiver device
+receiver_device_serial = "172.16.49.61:5555"
+
+# Get the current time
+start_time = datetime.now()
+
+# ADB command to retrieve battery information
+adb_command = ['adb', '-s', receiver_device_serial, 'shell', 'dumpsys', 'battery']
+
+# Execute the ADB command and capture the output
+result = subprocess.run(adb_command, capture_output=True, text=True)
+
+# Parse the output to extract the battery percentage
+battery_info = result.stdout.splitlines()
+battery_percentage = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage = line.split(':')[1].strip()
+
+print("Battery Percentage of the receiver device:", battery_percentage)
+
+# Get the current time
+current_time = datetime.now()
+
+# Create a Device object for the sender device
+sender_device = ui2.Device('cf611ff9')
+
+# Get the current app package and activity
+current_app = d.current_app()
+
+# Create a Device object for the receiver device
+receiver_device = ui2.Device(receiver_device_serial)
+
+turn_off_command = f"adb -s {receiver_device_serial} shell input keyevent 26"
+turn_on_command = f"adb -s {receiver_device_serial} shell input keyevent 224"
+time.sleep(2)
+subprocess.run(turn_off_command, shell=True, check=True)
+
+# Compose the message
+sender_device(text="Messages").click()
+time.sleep(2)
+sender_device(text="Start chat").click()
+time.sleep(2)
+sender_device(text="AAAAA").click()
+sender_device(text="Mobile+91 84486 97488").click()
+
+num_runs = 10
+for run in range(num_runs):
+    sender_device(resourceId="com.google.android.apps.messaging:id/compose_message_text").set_text("hello")
+    time.sleep(2)
+    sender_device(resourceId="com.google.android.apps.messaging:id/send_message_button_container").click()
+    time.sleep(60)
+
+subprocess.run(turn_on_command, shell=True, check=True)
+time.sleep(2)
+receiver_device.swipe(500, 1500, 500, 500)  # Adjust the swipe coordinates as needed
+
+# Get the battery percentage at the end
+result = subprocess.run(['adb', '-s', receiver_device_serial, 'shell', 'dumpsys', 'battery'],
+                        capture_output=True, text=True)
+battery_info = result.stdout.splitlines()
+battery_percentage_end = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage_end = line.split(':')[1].strip()
+
+# Print the battery percentage at the end
+print("Battery Percentage at end of standby:", battery_percentage_end)
+
+#################################Video Player#################################################################################
+
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+from datetime import datetime
+d = ui2.connect('192.168.228.94:5555')
+num_runs = 2
+for run in range(num_runs):
+ d.press("home")
+ d(scrollable=True).scroll.toEnd(20)
+ time.sleep(2)
+ d(text="Files").click()
+ time.sleep(2)
+ d(scrollable=True).scroll.toEnd(20)
+ time.sleep(2)
+ d(scrollable=True).scroll.toEnd(10)
+ time.sleep(2)
+ d(text="Internal storage").click()
+ time.sleep(2)
+ d(scrollable=True).scroll.toEnd(20)
+ time.sleep(2)
+ d(scrollable=True).scroll.toEnd(10)
+ time.sleep(2)
+ d(text="video.mp4.mp4").click()
+ time.sleep(300)
+ d(resourceId="com.google.android.apps.nbu.files:id/video_player").click()
+ time.sleep(2)
+ d(resourceId="com.android.systemui:id/back").click()
+ time.sleep(4)
+ d(resourceId="com.android.systemui:id/back").click()
+ time.sleep(2)
+ d(resourceId="com.android.systemui:id/back").click()
+ d.press("home")
+ d(resourceId="com.android.systemui:id/recent_apps").click()
+ time.sleep(2)
+ d(text="Clear all").click()  
+ time.sleep(2)
+ print("Video player playing")
+ d(resourceId="com.android.systemui:id/recent_apps").click()
+ time.sleep(2)
+ d(text="Clear all").click()  
+ time.sleep(2)
+ d.press('home')
+
+######################################Saavn#############################################################################
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+from datetime import datetime
+d = ui2.connect('192.168.228.94:5555')
+d.press("home")
+d(scrollable=True).scroll.toEnd(20)
+time.sleep(2)
+d(scrollable=True).scroll.toEnd(10)
+time.sleep(2)
+d(text="JioSaavn").click()
+time.sleep(2)
+d(resourceId="com.jio.media.jiobeats:id/2131364842").click()
+time.sleep(2)
+d(resourceId="com.jio.media.jiobeats:id/2131364817").click()
+time.sleep(15)
+num_run = 30
+for run in range(num_run):
+    d(resourceId="com.jio.media.jiobeats:id/2131364528").click()
+    time.sleep(20)
+    
+
+d.press("home")
+d(resourceId="com.android.systemui:id/recent_apps").click()
+time.sleep(2)
+d(text="Clear all").click()  
+time.sleep(2)
+d.press('home')
+
+###############################################Gallery#####################################################################
+
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+from datetime import datetime
+d = ui2.connect('192.168.228.94:5555')
+d.press("home")
+d(scrollable=True).scroll.toEnd(20)
+time.sleep(2)
+d(scrollable=True).scroll.toEnd(10)
+time.sleep(2)
+d(text="Photos").click()
+time.sleep(2)
+d(description="Photo taken on 30-May-2023 10:57:20 pm").click()
+time.sleep(10)
+num_run = 60
+for run in range(num_run):
+# Perform the left swipe
+ d.shell(["input", "swipe", "500", "500", "100", "500"])
+ time.sleep(10)
+
+d(resourceId="com.android.systemui:id/center_group").click()
+time.sleep(2)
+d(resourceId="com.android.systemui:id/recent_apps").click()
+time.sleep(2)
+d(text="Clear all").click()
+
+
+######################################## Maps ############################################################################
+
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+from datetime import datetime
+d = ui2.connect('192.168.228.94:5555')
+d(scrollable=True).scroll.toEnd(20)
+time.sleep(2)
+d(scrollable=True).scroll.toEnd(10)
+time.sleep(2)
+d(text="Maps").click()
+time.sleep(2)
+num_run = 60
+for run in range(num_run):
+ d.xpath('//*[@resource-id="com.google.android.apps.maps:id/mylocation_button"]/android.widget.FrameLayout[1]').click()
+ print("Clicked on current location")
+ time.sleep(10)
+    
+d(resourceId="com.android.systemui:id/center_group").click()
+time.sleep(2)
+d(resourceId="com.android.systemui:id/recent_apps").click()
+time.sleep(2)
+d(text="Clear all").click()
+
+#######################################Moj lite ##########################################################################
+
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+from datetime import datetime
+d = ui2.connect('192.168.228.94:5555')
+d(scrollable=True).scroll.toEnd(20)
+time.sleep(2)
+d(scrollable=True).scroll.toEnd(10)
+time.sleep(2)
+d(text="Moj-Lite").click()
+time.sleep(10)
+num_runs = 60
+for run in range(num_runs):
+ before_swipe_element = d(resourceId="in.mohalla.video.lite:id/ic_audio_convert_thumb")
+ after_swipe_element = d(resourceId="in.mohalla.video.lite:id/ic_audio_convert_thumb")
+
+ # Determine the starting and ending coordinates for the swipe action
+ start_x = after_swipe_element.center()[0]
+ start_y = after_swipe_element.center()[1]
+ end_x = start_x
+ end_y = start_y - 500  # Adjust the value based on the desired swipe distance
+
+ # Perform the swipe action
+ d.swipe(start_x, start_y, end_x, end_y)
+ swipe_done = before_swipe_element != after_swipe_element
+
+ # Print the result
+ if swipe_done:
+    print("Swipe action is done!")
+ else:
+    print("Swipe action failed or no change in element detected.")
+ time.sleep(10)
+
+d(resourceId="com.android.systemui:id/center_group").click()
+time.sleep(2)
+d(resourceId="com.android.systemui:id/recent_apps").click()
+time.sleep(2)
+d(text="Clear all")
+
+################################################ Standby ##################################################################
+
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+import os
+from datetime import datetime, timedelta
+# Device serial number of the receiver device
+receiver_device_serial = "172.16.49.61:5555"
+
+# Get the current time
+start_time = datetime.now()
+
+# ADB command to retrieve battery information
+adb_command = ['adb', '-s', receiver_device_serial, 'shell', 'dumpsys', 'battery']
+
+# Execute the ADB command and capture the output
+result = subprocess.run(adb_command, capture_output=True, text=True)
+
+# Parse the output to extract the battery percentage
+battery_info = result.stdout.splitlines()
+battery_percentage = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage = line.split(':')[1].strip()
+
+print("Battery Percentage of the receiver device:", battery_percentage)
+
+# Get the current time
+current_time = datetime.now()
+
+# Create a Device object for the sender device
+sender_device = ui2.Device('cf611ff9')
+
+# Get the current app package and activity
+current_app = d.current_app()
+
+# Create a Device object for the receiver device
+receiver_device = ui2.Device(receiver_device_serial)
+
+turn_off_command = f"adb -s {receiver_device_serial} shell input keyevent 26"
+turn_on_command = f"adb -s {receiver_device_serial} shell input keyevent 224"
+time.sleep(2)
+subprocess.run(turn_off_command, shell=True, check=True)
+
+# Compose the message
+sender_device(text="Messages").click()
+time.sleep(2)
+sender_device(text="Start chat").click()
+time.sleep(2)
+sender_device(text="AAAAA").click()
+sender_device(text="Mobile+91 84486 97488").click()
+
+num_runs = 10
+for run in range(num_runs):
+    sender_device(resourceId="com.google.android.apps.messaging:id/compose_message_text").set_text("hello")
+    time.sleep(2)
+    sender_device(resourceId="com.google.android.apps.messaging:id/send_message_button_container").click()
+    time.sleep(60)
+
+subprocess.run(turn_on_command, shell=True, check=True)
+time.sleep(2)
+receiver_device.swipe(500, 1500, 500, 500)  # Adjust the swipe coordinates as needed
+
+# Get the battery percentage at the end
+result = subprocess.run(['adb', '-s', receiver_device_serial, 'shell', 'dumpsys', 'battery'],
+                        capture_output=True, text=True)
+battery_info = result.stdout.splitlines()
+battery_percentage_end = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage_end = line.split(':')[1].strip()
+
+# Print the battery percentage at the end
+print("Battery Percentage at end of standby:", battery_percentage_end)
+
+################################################# Camera ####################################################################
+
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+import os
+from datetime import datetime, timedelta
+d = ui2.connect('192.168.228.94:5555')
+time.sleep(2)
+d(text="Camera").click()
+time.sleep(2)
+d.xpath('//*[@resource-id="com.mediatek.camera:id/bottom_shutter_frame"]/android.widget.LinearLayout[1]').click()
+
+time.sleep(1)
+num_runs = 5
+for run in range(num_runs):
+    d(resourceId="com.mediatek.camera:id/iv_shutter_button_bg").click()
+    time.sleep(40)
+d(resourceId="com.mediatek.camera:id/thumbnail").click()
+time.sleep(2)
+# Check if the photo preview is visible
+is_saved = d(resourceId="com.google.android.apps.photos:id/video_player_controller_fragment_container").exists()
+
+# Print the result
+if is_saved:
+    print("Photo is saved in the preview.")
+else:
+    print("Photo is not saved in the preview.")
+    
+num_runs = 5
+for run in range(num_runs):
+ time.sleep(10)
+ d.swipe_ext("left")
+    
+d(resourceId="com.android.systemui:id/center_group").click()
+time.sleep(2)
+d(text="Clear all").click()
+time.sleep(2)
+d(resourceId="com.android.launcher3:id/clear_all_button").click()
+result = subprocess.run(['adb', 'shell', 'dumpsys', 'battery'], capture_output=True, text=True)
+
+# Parse the output to extract the battery percentage
+battery_info = result.stdout.splitlines()
+battery_percentage = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage = line.split(':')[1].strip()
+
+# Print the battery percentage
+print("Battery Percentage at start of Camera:", battery_percentage)
+
+############################################## Google chat #################################################################
+
+d(scrollable=True).scroll.toEnd(20)
+time.sleep(2)
+d(text="Chat").click()
+time.sleep(2)
+d(text="New chat").click()
+time.sleep(2)
+d(text="ay96647@gmail.com").click()
+time.sleep(2)
+num_runs = 60
+for run in range(num_runs):
+ d(resourceId="com.google.android.apps.dynamite:id/compose_scroll_view_only_child").click()
+ time.sleep(2)
+ d.send_keys('hello')
+ time.sleep(10)
+ d(resourceId="com.google.android.apps.dynamite:id/post_message_button_layout").click()
+d(resourceId="com.android.systemui:id/center_group").click()
+time.sleep(2)
+d(resourceId="com.android.systemui:id/recent_apps").click()
+time.sleep(2)
+d(text="Clear all").click()
+result = subprocess.run(['adb', 'shell', 'dumpsys', 'battery'], capture_output=True, text=True)
+
+# Parse the output to extract the battery percentage
+battery_info = result.stdout.splitlines()
+battery_percentage = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage = line.split(':')[1].strip()
+
+# Print the battery percentage
+print("Battery Percentage at end of google chats:", battery_percentage)
+
+#########################################Music #############################################################################
+
+import uiautomator2 as ui2
+import time
+import subprocess
+import pandas as pd
+import os
+from datetime import datetime, timedelta
+d = ui2.connect('192.168.228.94:5555')
+d.press("home")
+time.sleep(2)
+d(scrollable=True).scroll.toEnd(20)
+time.sleep(2)
+d(scrollable=True).scroll.toEnd(10)
+time.sleep(1)
+d(text="Twitter").click()
+time.sleep(2)
+num_runs = 5
+for run in range(num_runs):
+ time.sleep(60)
+ d(resourceId="com.twitter.android:id/composer_write").click()
+ time.sleep(2)
+ d(resourceId="com.twitter.android:id/composer_write").click()
+ time.sleep(2)
+ d(resourceId="com.twitter.android:id/tweet_text").click()
+ time.sleep(2)
+ input_field = d(resourceId="com.google.android.apps.dynamite:id/compose_scroll_view_only_child")
+ time.sleep(2)
+ # Enter the chat message (replace "your_message" with the actual message you want to send)
+ message = "HelloThisisshubhampalsinghworkingforlavainternationalasseniorautomationtestengineerwearewritingsamescriptsusedfordifferentbrandmobilephonesalsoofdifferentandriodversionHerewecanrunsamescriptonmultipledevicessimultaneouslyfromonesystemDUTandreference"
+ subprocess.run(["adb", "shell", "input", "text", message])
+ time.sleep(2)
+ d.xpath('//*[@resource-id="com.twitter.android:id/composer_toolbar"]/android.widget.LinearLayout[1]').click()
+
+time.sleep(2)
+d(resourceId="com.android.systemui:id/center_group").click()
+time.sleep(2)
+d(resourceId="com.android.systemui:id/recent_apps").click()
+time.sleep(2)
+d(resourceId="com.android.launcher3:id/clear_all_button").click()
+result = subprocess.run(['adb', 'shell', 'dumpsys', 'battery'], capture_output=True, text=True)
+
+# Parse the output to extract the battery percentage
+battery_info = result.stdout.splitlines()
+battery_percentage = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage = line.split(':')[1].strip()
+
+# Print the battery percentage
+print("Battery Percentage at end of twitter:", battery_percentage)
+
+#############################################Facebook #######################################################################
+import uiautomator2 as ui2
+import time
+import subprocess
+d = ui2.connect('192.168.228.94:5555')
+d.press('home')
+d(scrollable=True).scroll.toEnd()
+time.sleep(2)
+d(resourceId="com.android.launcher3:id/icon", text="Facebook").click()
+d(description="Make a post on Facebook").click()
+# Input the desired text into the status update
+d.xpath('//android.widget.ScrollView/android.widget.LinearLayout[1]/android.widget.FrameLayout[1]').set_text("Lava mobile - Rethink what a phone can do")
+# Post the status update
+d(description="POST").click()
+time.sleep(2)
+num_runs = 20
+for run in range(num_runs):
+ time.sleep(30)
+ # Get the dimensions of the device screen
+ screen_width, screen_height = d.window_size()
+
+ # Get the dimensions of the device screen
+ screen_width, screen_height = d.window_size()
+
+ # Define the start and end coordinates for the swipe down gesture
+ start_x = screen_width // 2
+ start_y = screen_height // 4
+ end_x = start_x
+ end_y = start_y * 3
+
+ # Perform the swipe down gesture
+ d.swipe(start_x, start_y, end_x, end_y, duration=0.5)
+    
+d(resourceId="com.android.systemui:id/center_group").click()
+time.sleep(2)
+d(resourceId="com.android.systemui:id/recent_apps").click()
+time.sleep(2)
+d(text="Clear all").click()
+
+#################################################### Browser #################################################################
+
+time.sleep(2)
+d(text="Chrome").click()
+num_runs = 50
+for run in range(num_runs):
+ time.sleep(2)
+ d(scrollable=True).scroll.toEnd(steps=10)
+ time.sleep(2)
+ d(scrollable=True).scroll.toBeginning(steps=10)
+    
+print("The google news scroll for 10 minutes")
+
+result = subprocess.run(['adb', 'shell', 'dumpsys', 'battery'], capture_output=True, text=True)
+
+# Parse the output to extract the battery percentage
+battery_info = result.stdout.splitlines()
+battery_percentage = None
+for line in battery_info:
+    if 'level' in line:
+        battery_percentage = line.split(':')[1].strip()
+
+# Print the battery percentage
+print("Battery Percentage at start of browser:", battery_percentage)
